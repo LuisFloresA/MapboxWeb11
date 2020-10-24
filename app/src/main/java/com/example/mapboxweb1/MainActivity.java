@@ -2,13 +2,24 @@ package com.example.mapboxweb1;
 
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
+
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
 // classes needed to initialize map
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.annotations.MarkerOptions;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.Style;
@@ -61,6 +72,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     // variables needed to initialize navigation
     private Button button;
 
+
+    List<MarkerOptions> markerOptions = new ArrayList<>();
+    DatabaseReference mDatabase;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,18 +85,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapView = findViewById(R.id.mapView);
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(this);
+
+        mDatabase = FirebaseDatabase.getInstance().getReference();
+
     }
 
     @Override
     public void onMapReady(@NonNull final MapboxMap mapboxMap) {
         this.mapboxMap = mapboxMap;
-        mapboxMap.setStyle(getString(R.string.navigation_guidance_day), new Style.OnStyleLoaded() {
+        mapboxMap.setStyle(Style.MAPBOX_STREETS, new Style.OnStyleLoaded() {
             @Override
             public void onStyleLoaded(@NonNull Style style) {
                 enableLocationComponent(style);
 
                 addDestinationIconSymbolLayer(style);
-
+                loadMarcadores();
                 mapboxMap.addOnMapClickListener(MainActivity.this);
                 button = findViewById(R.id.startButton);
                 button.setOnClickListener(new View.OnClickListener() {
@@ -95,10 +114,42 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         NavigationLauncher.startNavigation(MainActivity.this, options);
                     }
                 });
+
             }
         });
     }
+    public void loadMarcadores(){
+        final List<Coordenada>marcadores = new ArrayList<>();
+        mDatabase.child("Marcadores").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if(snapshot.exists()){
+                    for(DataSnapshot ds: snapshot.getChildren()){
+                        String nombre = ds.getKey();
+                        float lat = Float.parseFloat(ds.child("lat").getValue().toString());
+                        float lon = Float.parseFloat(ds.child("lon").getValue().toString());
+                        marcadores.add(new Coordenada(nombre,lat,lon));
+                    }
+                addMarker(marcadores);
+                }
+            }
 
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+
+    }
+    private void addMarker(List<Coordenada> coor){
+
+        Iterator<Coordenada> iterator = coor.iterator();
+        while(iterator.hasNext()){
+            Coordenada coordenada = iterator.next();
+            markerOptions.add(new MarkerOptions().position(new LatLng(coordenada.getLatitud(),coordenada.getLongitud())).setTitle(coordenada.getNombre()));
+        }
+        mapboxMap.addMarkers(markerOptions);
+    }
     private void addDestinationIconSymbolLayer(@NonNull Style loadedMapStyle) {
         loadedMapStyle.addImage("destination-icon-id",
                 BitmapFactory.decodeResource(this.getResources(), R.drawable.mapbox_marker_icon_default));

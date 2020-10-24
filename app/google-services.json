@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "662891570278",
+    "firebase_url": "https://findhp.firebaseio.com",
+    "project_id": "findhp",
+    "storage_bucket": "findhp.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:662891570278:android:6b7040cdcccb0d75c939a7",
+        "android_client_info": {
+          "package_name": "com.example.mapboxweb1"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "662891570278-s23cbprugrhiffh4mpg9b75aaopbktl9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAg0G9ypnfqOylyEskIJk_XlNKQcLeAK-s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "662891570278-s23cbprugrhiffh4mpg9b75aaopbktl9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
