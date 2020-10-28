@@ -1,14 +1,31 @@
 package com.example.mapboxweb1;
 
+import java.util.ArrayList;
+
 public class Coordenada {
     String nombre;
     float latitud;
     float longitud;
+    String [] dias;
 
-    public Coordenada(String nombre, float latitud, float longitud) {
+    public Coordenada(String nombre, float latitud, float longitud, String diasSemana) {
         this.nombre = nombre;
         this.latitud = latitud;
         this.longitud = longitud;
+        stringToArray(diasSemana);
+
+    }
+
+    public String[] getDias() {
+        return dias;
+    }
+
+    public void setDias(String[] dias) {
+        this.dias = dias;
+    }
+
+    public void stringToArray(String key){
+        dias = key.split(",");
     }
 
     public String getNombre() {
