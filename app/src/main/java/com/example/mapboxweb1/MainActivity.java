@@ -1,5 +1,6 @@
 package com.example.mapboxweb1;
 
+import android.app.Activity;
 import android.content.ClipData;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -21,6 +22,8 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
+import android.widget.ImageButton;
+import android.widget.PopupMenu;
 import android.widget.Toast;
 
 // classes needed to initialize map
@@ -49,6 +52,8 @@ import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
+
+import static com.mapbox.mapboxsdk.Mapbox.getApplicationContext;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconAllowOverlap;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconIgnorePlacement;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconImage;
@@ -70,7 +75,7 @@ import android.widget.Button;
 import com.mapbox.services.android.navigation.ui.v5.NavigationLauncher;
 
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, MapboxMap.OnMapClickListener, PermissionsListener {
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, MapboxMap.OnMapClickListener, PermissionsListener, PopupMenu.OnMenuItemClickListener {
     // variables for adding location layer
     private MapView mapView;
     private MapboxMap mapboxMap;
@@ -87,7 +92,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     List<MarkerOptions> markerOptions = new ArrayList<>();
     DatabaseReference mDatabase;
-    String[] dias={"lunes","martes", "miércoles","jueves","viernes","sábado","domingo"};
+    String[] dias={"domingo","lunes","martes", "miércoles","jueves","viernes","sábado"};
+    String[] categorias = {"Dentista","Farmacia","Policia","Salud","Veterinario"};
+    BaseDatos db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -98,8 +105,66 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(this);
         mDatabase = FirebaseDatabase.getInstance().getReference();
+        db = new BaseDatos(getResources(),markerOptions);
 
     }
+
+    public void showPopup(View v){
+        PopupMenu popup = new PopupMenu(this,v);
+        popup.setOnMenuItemClickListener(this);
+        popup.inflate(R.menu.menu_content);
+        popup.show();
+    }
+    @Override
+    public boolean onMenuItemClick(MenuItem menuItem) {
+        switch (menuItem.getItemId()){
+            case R.id.Todo:
+                navigationMapRoute.removeRoute();
+                db.removeMarker();
+                db.setKey("Todo");
+                db.loadMarcadores(mDatabase, dias,categorias);
+                Toast.makeText(getApplicationContext(),"Click Todo",Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.Dentista:
+                navigationMapRoute.removeRoute();
+                db.removeMarker();
+                db.setKey("Dentista");
+                db.loadMarcadores(mDatabase, dias,categorias);
+                Toast.makeText(getApplicationContext(),"Click Dentista",Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.Farmacia:
+                navigationMapRoute.removeRoute();
+                db.removeMarker();
+                db.setKey("Farmacia");
+                db.loadMarcadores(mDatabase, dias,categorias);
+                Toast.makeText(getApplicationContext(),"Click Farmacia",Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.Policia:
+                navigationMapRoute.removeRoute();
+                db.removeMarker();
+                db.setKey("Policia");
+                db.loadMarcadores(mDatabase, dias,categorias);
+                Toast.makeText(getApplicationContext(),"Click Policia",Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.Salud:
+                navigationMapRoute.removeRoute();
+                db.removeMarker();
+                db.setKey("Salud");
+                db.loadMarcadores(mDatabase, dias,categorias);
+                Toast.makeText(getApplicationContext(),"Click Salud",Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.Veterinario:
+                navigationMapRoute.removeRoute();
+                db.removeMarker();
+                db.setKey("Veterinario");
+                db.loadMarcadores(mDatabase, dias,categorias);
+                Toast.makeText(getApplicationContext(),"Click Veterinario",Toast.LENGTH_SHORT).show();
+                return true;
+            default:
+                return false;
+        }
+    }
+
 
     @Override
     public void onMapReady(@NonNull final MapboxMap mapboxMap) {
@@ -108,10 +173,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onStyleLoaded(@NonNull Style style) {
                 enableLocationComponent(style);
+                //db.setStyle(style);
+                db.setMapboxMap(mapboxMap);
                 //Metodo al pinchar genera el icono ruta
-                addDestinationIconSymbolLayer(style);
+                //addDestinationIconSymbolLayer(style);
                 //Metodo que carga los marcadores desde firebase
-                loadMarcadores();
+                db.loadMarcadores(mDatabase, dias,categorias);
                 mapboxMap.setOnMarkerClickListener(new MapboxMap.OnMarkerClickListener() {
                     @Override
                     public boolean onMarkerClick(@NonNull Marker marker) {
@@ -174,75 +241,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 });
                 dialogo2.show();
                 return true;
+            case R.id.filter:
+                View menuView = findViewById(R.id.filter); // SAME ID AS MENU ID
+                showPopup(menuView);
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
-    }
-
-    public void loadMarcadores(){
-        final List<Coordenada>marcadores = new ArrayList<>();
-        mDatabase.child("Marcadores").addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if(snapshot.exists()){
-                    for(DataSnapshot ds: snapshot.getChildren()){
-                        String nombre = ds.getKey();
-                        String dias = ds.child("dias").getValue().toString();
-                        float lat = Float.parseFloat(ds.child("lat").getValue().toString());
-                        float lon = Float.parseFloat(ds.child("lon").getValue().toString());
-                        Coordenada co = new Coordenada(nombre,lat,lon,dias);
-                        if(validarDia(co.getDias())){
-                            marcadores.add(co);
-                            Toast.makeText(getApplicationContext(),"Agrego " + nombre,Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                addMarker(marcadores);
-                }
-            }
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-        });
-
-    }
-
-    private boolean validarDia(String[] lista){
-        boolean flag = false;
-        final Calendar c = Calendar.getInstance(TimeZone.getTimeZone("America/Santiago"));
-        int dateString = c.get(Calendar.DAY_OF_WEEK);
-        String dia = dias[dateString - 1];
-        Toast.makeText(getApplicationContext(),dia,Toast.LENGTH_SHORT).show();
-        for(int x=0;x<lista.length;x++){
-            if(lista[x].equalsIgnoreCase(dia)){
-                flag = true;
-                break;
-            }
-        }
-        return flag;
-    }
-    private void addMarker(List<Coordenada> coor){
-
-        Iterator<Coordenada> iterator = coor.iterator();
-        while(iterator.hasNext()){
-            Coordenada coordenada = iterator.next();
-            markerOptions.add(new MarkerOptions().position(new LatLng(coordenada.getLatitud(),coordenada.getLongitud())).setTitle(coordenada.getNombre()));
-        }
-        mapboxMap.addMarkers(markerOptions);
-    }
-    private void addDestinationIconSymbolLayer(@NonNull Style loadedMapStyle) {
-
-        loadedMapStyle.addImage("destination-icon-id",
-                BitmapFactory.decodeResource(this.getResources(), R.drawable.mapbox_marker_icon_default));
-        GeoJsonSource geoJsonSource = new GeoJsonSource("destination-source-id");
-        loadedMapStyle.addSource(geoJsonSource);
-        SymbolLayer destinationSymbolLayer = new SymbolLayer("destination-symbol-layer-id", "destination-source-id");
-        destinationSymbolLayer.withProperties(
-                iconImage("destination-icon-id"),
-                iconAllowOverlap(true),
-                iconIgnorePlacement(true)
-        );
-        loadedMapStyle.addLayer(destinationSymbolLayer);
     }
 
     @SuppressWarnings( {"MissingPermission"})
@@ -377,7 +382,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_activity, menu);
+        /*ImageButton locButton = (ImageButton) menu.findItem(R.id.filter).getActionView();
+        locButton.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                // TODO Auto-generated method stub
+                showPopup(v);
+                //mQuickAction.show(v);
+            }
+        });*/
         return true;
     }
+
 
 }

@@ -6,10 +6,12 @@ public class Coordenada {
     String nombre;
     float latitud;
     float longitud;
+    String desc;
     String [] dias;
 
-    public Coordenada(String nombre, float latitud, float longitud, String diasSemana) {
+    public Coordenada(String nombre,String desc, float latitud, float longitud, String diasSemana) {
         this.nombre = nombre;
+        this.desc = desc;
         this.latitud = latitud;
         this.longitud = longitud;
         stringToArray(diasSemana);
@@ -22,6 +24,14 @@ public class Coordenada {
 
     public void setDias(String[] dias) {
         this.dias = dias;
+    }
+
+    public String getDesc() {
+        return desc;
+    }
+
+    public void setDesc(String desc) {
+        this.desc = desc;
     }
 
     public void stringToArray(String key){
