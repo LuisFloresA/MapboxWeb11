@@ -17,6 +17,7 @@ import java.util.TimeZone;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -24,6 +25,7 @@ import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.PopupMenu;
+import android.widget.TextView;
 import android.widget.Toast;
 
 // classes needed to initialize map
@@ -75,7 +77,7 @@ import android.widget.Button;
 import com.mapbox.services.android.navigation.ui.v5.NavigationLauncher;
 
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, MapboxMap.OnMapClickListener, PermissionsListener, PopupMenu.OnMenuItemClickListener {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener,OnMapReadyCallback, MapboxMap.OnMapClickListener, PermissionsListener, PopupMenu.OnMenuItemClickListener {
     // variables for adding location layer
     private MapView mapView;
     private MapboxMap mapboxMap;
@@ -86,6 +88,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private DirectionsRoute currentRoute;
     private static final String TAG = "DirectionsActivity";
     private NavigationMapRoute navigationMapRoute;
+    private CardView card_view;
+    private  ImageButton closeCard;
+    private  ImageButton car;
+    private LatLng puntoMarcador;
+    private TextView texto1;
+    private TextView texto3;
+    private TextView texto5;
+    private TextView texto7;
     // variables needed to initialize navigation
 
 
@@ -102,67 +112,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Mapbox.getInstance(this, getString(R.string.access_token));
         setContentView(R.layout.activity_main);
         mapView = findViewById(R.id.mapView);
+        closeCard = findViewById(R.id.closeCard);
+        closeCard.setOnClickListener(this);
+        car = findViewById(R.id.car);
+        car.setOnClickListener(this);
+        texto1 = findViewById(R.id.texto1);
+        texto3 = findViewById(R.id.texto3);
+        texto5 = findViewById(R.id.texto5);
+        texto7= findViewById(R.id.texto7);
+        card_view = findViewById(R.id.card_view);
+        card_view.setVisibility(View.GONE);
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(this);
         mDatabase = FirebaseDatabase.getInstance().getReference();
-        db = new BaseDatos(getResources(),markerOptions);
+        db = new BaseDatos(getResources(),markerOptions,texto1,texto3,texto5,texto7);
 
-    }
-
-    public void showPopup(View v){
-        PopupMenu popup = new PopupMenu(this,v);
-        popup.setOnMenuItemClickListener(this);
-        popup.inflate(R.menu.menu_content);
-        popup.show();
-    }
-    @Override
-    public boolean onMenuItemClick(MenuItem menuItem) {
-        switch (menuItem.getItemId()){
-            case R.id.Todo:
-                navigationMapRoute.removeRoute();
-                db.removeMarker();
-                db.setKey("Todo");
-                db.loadMarcadores(mDatabase, dias,categorias);
-                Toast.makeText(getApplicationContext(),"Click Todo",Toast.LENGTH_SHORT).show();
-                return true;
-            case R.id.Dentista:
-                navigationMapRoute.removeRoute();
-                db.removeMarker();
-                db.setKey("Dentista");
-                db.loadMarcadores(mDatabase, dias,categorias);
-                Toast.makeText(getApplicationContext(),"Click Dentista",Toast.LENGTH_SHORT).show();
-                return true;
-            case R.id.Farmacia:
-                navigationMapRoute.removeRoute();
-                db.removeMarker();
-                db.setKey("Farmacia");
-                db.loadMarcadores(mDatabase, dias,categorias);
-                Toast.makeText(getApplicationContext(),"Click Farmacia",Toast.LENGTH_SHORT).show();
-                return true;
-            case R.id.Policia:
-                navigationMapRoute.removeRoute();
-                db.removeMarker();
-                db.setKey("Policia");
-                db.loadMarcadores(mDatabase, dias,categorias);
-                Toast.makeText(getApplicationContext(),"Click Policia",Toast.LENGTH_SHORT).show();
-                return true;
-            case R.id.Salud:
-                navigationMapRoute.removeRoute();
-                db.removeMarker();
-                db.setKey("Salud");
-                db.loadMarcadores(mDatabase, dias,categorias);
-                Toast.makeText(getApplicationContext(),"Click Salud",Toast.LENGTH_SHORT).show();
-                return true;
-            case R.id.Veterinario:
-                navigationMapRoute.removeRoute();
-                db.removeMarker();
-                db.setKey("Veterinario");
-                db.loadMarcadores(mDatabase, dias,categorias);
-                Toast.makeText(getApplicationContext(),"Click Veterinario",Toast.LENGTH_SHORT).show();
-                return true;
-            default:
-                return false;
-        }
     }
 
 
@@ -177,21 +141,135 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 db.setMapboxMap(mapboxMap);
                 //Metodo al pinchar genera el icono ruta
                 //addDestinationIconSymbolLayer(style);
-                //Metodo que carga los marcadores desde firebase
+                //mapboxMap.addOnMapClickListener(MainActivity.this);
                 db.loadMarcadores(mDatabase, dias,categorias);
                 mapboxMap.setOnMarkerClickListener(new MapboxMap.OnMarkerClickListener() {
                     @Override
                     public boolean onMarkerClick(@NonNull Marker marker) {
-
                         String name = marker.getTitle();
-                        onMapClick(marker.getPosition());
+                        puntoMarcador = marker.getPosition();
+                        db.rellenarCard(name);
+                        card_view.setVisibility(View.VISIBLE);
                         Toast.makeText(getApplicationContext(),name,Toast.LENGTH_SHORT).show();
                         return false;
                     }
                 });
+
             }
         });
     }
+
+    @Override
+    public boolean onMapClick(@NonNull LatLng point) {
+        Toast.makeText(getApplicationContext(),"CLICK ;)",Toast.LENGTH_SHORT).show();
+        Point destinationPoint = Point.fromLngLat(point.getLongitude(), point.getLatitude());
+        Point originPoint = Point.fromLngLat(locationComponent.getLastKnownLocation().getLongitude(),
+                locationComponent.getLastKnownLocation().getLatitude());
+        GeoJsonSource source = mapboxMap.getStyle().getSourceAs("destination-source-id");
+        if (source != null) {
+            source.setGeoJson(Feature.fromGeometry(destinationPoint));
+        }
+        getRoute(originPoint, destinationPoint);
+        return true;
+    }
+
+
+
+
+    public void showPopup(View v){
+        PopupMenu popup = new PopupMenu(this,v);
+        popup.setOnMenuItemClickListener(this);
+        popup.inflate(R.menu.menu_content);
+        popup.show();
+    }
+    @Override
+    public boolean onMenuItemClick(MenuItem menuItem) {
+        switch (menuItem.getItemId()){
+            case R.id.Todo:
+                try {
+                    navigationMapRoute.removeRoute();
+                }catch (Exception e){
+
+                }
+                db.removeMarker();
+                db.setKey("Todo");
+                db.loadMarcadores(mDatabase, dias,categorias);
+                Toast.makeText(getApplicationContext(),"Click Todo",Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.Dentista:
+                try {
+                    navigationMapRoute.removeRoute();
+                }catch (Exception e){
+
+                }
+                db.removeMarker();
+                db.setKey("Dentista");
+                db.loadMarcadores(mDatabase, dias,categorias);
+                Toast.makeText(getApplicationContext(),"Click Dentista",Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.Farmacia:
+                try {
+                    navigationMapRoute.removeRoute();
+                }catch (Exception e){
+
+                }
+                db.removeMarker();
+                db.setKey("Farmacia");
+                db.loadMarcadores(mDatabase, dias,categorias);
+                Toast.makeText(getApplicationContext(),"Click Farmacia",Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.Policia:
+                try {
+                    navigationMapRoute.removeRoute();
+                }catch (Exception e){
+
+                }
+                db.removeMarker();
+                db.setKey("Policia");
+                db.loadMarcadores(mDatabase, dias,categorias);
+                Toast.makeText(getApplicationContext(),"Click Policia",Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.Salud:
+                try {
+                    navigationMapRoute.removeRoute();
+                }catch (Exception e){
+
+                }
+                db.removeMarker();
+                db.setKey("Salud");
+                db.loadMarcadores(mDatabase, dias,categorias);
+                Toast.makeText(getApplicationContext(),"Click Salud",Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.Veterinario:
+                try {
+                    navigationMapRoute.removeRoute();
+                }catch (Exception e){
+
+                }
+                db.removeMarker();
+                db.setKey("Veterinario");
+                db.loadMarcadores(mDatabase, dias,categorias);
+                Toast.makeText(getApplicationContext(),"Click Veterinario",Toast.LENGTH_SHORT).show();
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    @Override
+    public void onClick(View view) {
+        switch (view.getId()) {
+            case R.id.closeCard:
+                card_view.setVisibility(View.GONE);
+                Toast.makeText(this, "Cerrado cardView ;)", Toast.LENGTH_SHORT).show();
+                break;
+            case R.id.car:
+                onMapClick(puntoMarcador);
+                Toast.makeText(this, "Ruta generada ;)", Toast.LENGTH_SHORT).show();
+                break;
+        }
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection
@@ -251,18 +329,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @SuppressWarnings( {"MissingPermission"})
-    @Override
-    public boolean onMapClick(@NonNull LatLng point) {
-        Point destinationPoint = Point.fromLngLat(point.getLongitude(), point.getLatitude());
-        Point originPoint = Point.fromLngLat(locationComponent.getLastKnownLocation().getLongitude(),
-                locationComponent.getLastKnownLocation().getLatitude());
-        GeoJsonSource source = mapboxMap.getStyle().getSourceAs("destination-source-id");
-        if (source != null) {
-            source.setGeoJson(Feature.fromGeometry(destinationPoint));
-        }
-        getRoute(originPoint, destinationPoint);
-        return true;
-    }
+
 
 
     private void getRoute(Point origin, Point destination) {
@@ -382,16 +449,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.menu_activity, menu);
-        /*ImageButton locButton = (ImageButton) menu.findItem(R.id.filter).getActionView();
-        locButton.setOnClickListener(new View.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                // TODO Auto-generated method stub
-                showPopup(v);
-                //mQuickAction.show(v);
-            }
-        });*/
         return true;
     }
 

@@ -7,15 +7,31 @@ public class Coordenada {
     float latitud;
     float longitud;
     String desc;
+    String diasSema;
+    String categoria;
     String [] dias;
 
-    public Coordenada(String nombre,String desc, float latitud, float longitud, String diasSemana) {
+    public Coordenada(String nombre,String desc, float latitud, float longitud, String diasSemana,String categoria) {
         this.nombre = nombre;
         this.desc = desc;
         this.latitud = latitud;
         this.longitud = longitud;
+        this.diasSema = diasSemana;
+        this.categoria = categoria;
         stringToArray(diasSemana);
 
+    }
+
+    public String getCategoria() {
+        return categoria;
+    }
+
+    public void setCategoria(String categoria) {
+        this.categoria = categoria;
+    }
+
+    public String getDiasSema() {
+        return diasSema;
     }
 
     public String[] getDias() {

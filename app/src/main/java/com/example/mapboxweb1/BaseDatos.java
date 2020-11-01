@@ -2,6 +2,7 @@ package com.example.mapboxweb1;
 
 import android.content.res.Resources;
 import android.graphics.BitmapFactory;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -36,11 +37,20 @@ public class BaseDatos {
     private List<MarkerOptions> mOptions;
     private MapboxMap mapboxMap;
     private String key;
+    List<Coordenada> marcadores;
+    private TextView texto1;
+    private TextView texto3;
+    private TextView texto5;
+    private TextView texto7;
 
-    public BaseDatos(Resources res,List<MarkerOptions> mOptions) {
+    public BaseDatos(Resources res, List<MarkerOptions> mOptions, TextView texto1,TextView texto3,TextView texto5,TextView texto7) {
         this.res = res;
         this.mOptions = mOptions;
         this.key = "Todo";
+        this.texto1 = texto1;
+        this.texto3 = texto3;
+        this.texto5 = texto5;
+        this.texto7 = texto7;
     }
 
     public void setMapboxMap(MapboxMap mapboxMap) {
@@ -52,7 +62,7 @@ public class BaseDatos {
     }
 
     public void loadMarcadores(DatabaseReference mDatabase, final String[] diass, final String[] categorias){
-        final List<Coordenada> marcadores = new ArrayList<>();
+        marcadores = new ArrayList<>();
         if(!key.equals("Todo")) {
             mDatabase.child(key).addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
@@ -64,7 +74,7 @@ public class BaseDatos {
                             String dias = ds.child("semana").getValue().toString();
                             float lat = Float.parseFloat(ds.child("lat").getValue().toString());
                             float lon = Float.parseFloat(ds.child("lon").getValue().toString());
-                            Coordenada co = new Coordenada(nombre,desc, lat, lon, dias);
+                            Coordenada co = new Coordenada(nombre,desc, lat, lon, dias, key);
                             //if(validarDia(co.getDias(),diass)){
                             marcadores.add(co);
                             Toast.makeText(getApplicationContext(), "Agrego " + nombre, Toast.LENGTH_SHORT).show();
@@ -92,7 +102,18 @@ public class BaseDatos {
         //addMarker(marcadores,markerOptions,mapboxMap);
 
     }
-
+    public void rellenarCard(String nombre){
+        Iterator<Coordenada> iterator = marcadores.iterator();
+        while(iterator.hasNext()){
+            Coordenada coordenada = iterator.next();
+            if(coordenada.getNombre().equalsIgnoreCase(nombre)){
+                texto1.setText(coordenada.getNombre());
+                texto3.setText(coordenada.getCategoria());
+                texto5.setText(coordenada.getDesc());
+                texto7.setText(coordenada.getDiasSema());
+            }
+        }
+    }
     private boolean validarDia(String[] lista, String[] dias){
         boolean flag = false;
         final Calendar c = Calendar.getInstance(TimeZone.getTimeZone("America/Santiago"));
